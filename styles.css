@@ -577,8 +577,14 @@ tbody tr:hover {
   font-size: 18px;
 }
 
+.references h4 {
+  margin: 14px 0 6px;
+  color: var(--blue-dark);
+  font-size: 14px;
+}
+
 .references ol {
-  margin: 0;
+  margin: 0 0 4px;
   padding-left: 22px;
   color: var(--muted);
   line-height: 1.7;
