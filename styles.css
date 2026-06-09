@@ -41,6 +41,7 @@ body {
   font-size: 24px;
   color: var(--blue-dark);
   font-weight: 700;
+  text-decoration: none;
 }
 
 .brand-mark {
