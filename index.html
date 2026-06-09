@@ -156,14 +156,79 @@
       </section>
 
       <section class="threshold-section view-panel" id="thresholds">
-        <p class="label">Model notes</p>
-        <div class="thresholds">
-          <span>Length 5-50 aa</span>
-          <span>Charge -1 to 4</span>
-          <span>pI 4-10</span>
-          <span>GRAVY -2 to 0.8</span>
-          <span>Instability &lt;40</span>
-          <span>Boman &gt;0.5</span>
+        <div class="threshold-intro">
+          <p class="label">Model notes</p>
+          <h2>Literature-informed screening thresholds</h2>
+          <p>
+            These thresholds are early-stage screening rules and do not represent
+            experimental validation or clinical druggability conclusions.
+          </p>
+        </div>
+
+        <div class="threshold-grid">
+          <div>
+            <strong>Length</strong>
+            <span>5-50 aa</span>
+            <p>Typical short therapeutic-peptide range.</p>
+          </div>
+          <div>
+            <strong>Net charge</strong>
+            <span>-1 to +6 at pH 7.4</span>
+            <p>Allows moderately cationic peptides while limiting very high charge.</p>
+          </div>
+          <div>
+            <strong>Isoelectric point</strong>
+            <span>pI 4.0-11.0</span>
+            <p>Broad range used to avoid extreme ionization behavior.</p>
+          </div>
+          <div>
+            <strong>Hydrophobicity</strong>
+            <span>-0.5 to +1.2</span>
+            <p>Eisenberg mean hydrophobicity range for balanced solubility.</p>
+          </div>
+          <div>
+            <strong>Amphiphilicity</strong>
+            <span>&ge;0.20</span>
+            <p>Eisenberg hydrophobic moment proxy for amphipathic character.</p>
+          </div>
+          <div>
+            <strong>Instability index</strong>
+            <span>&le;40</span>
+            <p>ProtParam convention: values below 40 indicate predicted stability.</p>
+          </div>
+          <div>
+            <strong>Aliphatic index</strong>
+            <span>0-300</span>
+            <p>Reported descriptor; this range is intentionally non-restrictive.</p>
+          </div>
+          <div>
+            <strong>GRAVY</strong>
+            <span>-2.0 to +0.8</span>
+            <p>Kyte-Doolittle hydropathy window to reduce extreme polarity or aggregation risk.</p>
+          </div>
+          <div>
+            <strong>Boman index</strong>
+            <span>&ge;0.5</span>
+            <p>Heuristic minimum for protein-binding potential; values above 2.48 are high.</p>
+          </div>
+          <div>
+            <strong>Shannon entropy</strong>
+            <span>&ge;1.5</span>
+            <p>Low-complexity filter based on amino-acid composition.</p>
+          </div>
+        </div>
+
+        <div class="references">
+          <h3>References</h3>
+          <ol>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/23719681/" target="_blank" rel="noopener">Diao and Meibohm, Clin Pharmacokinet, 2013</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/18294197/" target="_blank" rel="noopener">Wang and Wang, Nucleic Acids Res, 2004</a></li>
+            <li><a href="https://web.expasy.org/protparam/protparam-doc.html" target="_blank" rel="noopener">ExPASy ProtParam documentation</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/7108955/" target="_blank" rel="noopener">Kyte and Doolittle, J Mol Biol, 1982</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/7143459/" target="_blank" rel="noopener">Eisenberg et al., Nature, 1982</a></li>
+            <li><a href="https://pubmed.ncbi.nlm.nih.gov/14662037/" target="_blank" rel="noopener">Boman, J Intern Med, 2003</a></li>
+            <li><a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x" target="_blank" rel="noopener">Shannon, Bell System Technical Journal, 1948</a></li>
+          </ol>
         </div>
       </section>
     </main>
