@@ -44,6 +44,13 @@ body {
   text-decoration: none;
 }
 
+.brand:visited,
+.brand:hover,
+.brand:focus {
+  color: var(--blue-dark);
+  text-decoration: none;
+}
+
 .brand-mark {
   width: 36px;
   height: 36px;
@@ -545,6 +552,11 @@ tbody tr:hover {
 .references a {
   color: var(--blue-dark);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.references a:hover {
+  text-decoration: none;
 }
 
 .thresholds span {
