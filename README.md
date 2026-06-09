@@ -17,6 +17,8 @@ Open `index.html` directly in a browser.
 ## Outputs
 
 - Net charge at pH 7.4
+- Net charge at pH 7.0
+- Molecular weight
 - Isoelectric point
 - Hydrophobicity
 - Amphiphilicity
@@ -25,7 +27,11 @@ Open `index.html` directly in a browser.
 - GRAVY
 - Boman index
 - Shannon entropy
+- Aromaticity
+- Residue class fractions
+- Extinction coefficient at 280 nm
 - Solubility proxy
+- Aggregation risk proxy
 - PASS/FAIL classification
 - CSV download for all results or PASS-only results
 
