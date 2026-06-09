@@ -32,6 +32,13 @@ Open `index.html` directly in a browser.
 - Extinction coefficient at 280 nm
 - Solubility proxy
 - Aggregation risk proxy
+- Degradation hotspot scan
+- Proteolysis risk proxy
+- N-end rule class
+- SPPS difficulty score
+- Hemolysis risk proxy
+- Weighted developability score
+- Hard-filter report
 - PASS/FAIL classification
 - CSV download for all results or PASS-only results
 
