@@ -46,11 +46,11 @@ const DIWV = {
 
 const THRESHOLDS = {
   length: [5, 50, "aa"],
-  net_charge: [-1, 4, ""],
-  isoelectric_point: [4, 10, "pH"],
+  net_charge: [-1, 6, ""],
+  isoelectric_point: [4, 11, "pH"],
   hydrophobicity: [-0.5, 1.2, ""],
   amphiphilicity: [0.2, 999, ""],
-  instability_index: [0, 40, ""],
+  instability_index: [-999, 40, ""],
   aliphatic_index: [0, 300, ""],
   gravy: [-2, 0.8, ""],
   boman_index: [0.5, 999, ""],
@@ -248,7 +248,7 @@ function evaluateSequence(record, index) {
     const value = metrics[key];
     if (value >= min && value <= max) return [];
     const suffix = unit ? ` ${unit}` : "";
-    return [`${key}=${format(value)} (expected ${min}-${max}${suffix})`];
+    return [`${key}=${format(value)} (expected ${formatThreshold(min, max, suffix)})`];
   });
   metrics.druggability = failed.length ? "FAIL" : "PASS";
   metrics.fail_reasons = failed.join("; ");
@@ -362,6 +362,12 @@ function downloadCsv(rows, filename) {
 
 function format(value) {
   return Number.isFinite(value) ? String(round(value, 4)) : "";
+}
+
+function formatThreshold(min, max, suffix) {
+  if (min <= -998) return `<=${max}${suffix}`;
+  if (max >= 998) return `>=${min}${suffix}`;
+  return `${min}-${max}${suffix}`;
 }
 
 function escapeHtml(value) {
