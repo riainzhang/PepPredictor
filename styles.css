@@ -427,7 +427,7 @@ tbody tr:hover {
 }
 
 .threshold-intro {
-  max-width: 900px;
+  max-width: none;
   margin-bottom: 18px;
 }
 
@@ -438,7 +438,7 @@ tbody tr:hover {
 .threshold-intro p:not(.label) {
   margin: 0;
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .scoring-model {
