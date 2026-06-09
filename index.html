@@ -137,6 +137,9 @@
                 <th>ID</th>
                 <th>Sequence</th>
                 <th>Status</th>
+                <th>Score</th>
+                <th>Class</th>
+                <th>Hard filter</th>
                 <th>Length</th>
                 <th>MW (Da)</th>
                 <th>Charge</th>
@@ -150,12 +153,14 @@
                 <th>Ext. coeff.</th>
                 <th>Solubility</th>
                 <th>Aggregation</th>
+                <th>Proteolysis</th>
+                <th>Synthesis</th>
                 <th>Fail reasons</th>
               </tr>
             </thead>
             <tbody id="resultsBody">
               <tr class="empty-row">
-                <td colspan="17">No predictions yet.</td>
+                <td colspan="22">No predictions yet.</td>
               </tr>
             </tbody>
           </table>
@@ -173,6 +178,22 @@
             developability, physicochemical design, stability, solubility, and
             amphipathic peptide features.
           </p>
+        </div>
+
+        <div class="scoring-model">
+          <h3>Scoring model</h3>
+          <p>
+            PepPredictor uses a two-tier framework: hard filters flag severe
+            developability risks, then a weighted soft score ranks candidates
+            while preserving all raw descriptors.
+          </p>
+          <div class="score-weights">
+            <span>Physicochemical balance 25%</span>
+            <span>Stability 25%</span>
+            <span>Solubility / aggregation 25%</span>
+            <span>Synthesizability 15%</span>
+            <span>Safety proxy 10%</span>
+          </div>
         </div>
 
         <div class="threshold-grid">
@@ -250,6 +271,31 @@
             <strong>Aggregation risk proxy</strong>
             <span>Low / Medium / High</span>
             <p>Sequence-only proxy combining hydrophobic load, low charge repulsion, aromaticity, and instability.</p>
+          </div>
+          <div>
+            <strong>Degradation hotspots</strong>
+            <span>N/Q deamidation, D isomerization, oxidation, pyroglutamation</span>
+            <p>Regex scan for common chemical liabilities in peptide sequences.</p>
+          </div>
+          <div>
+            <strong>Proteolysis risk proxy</strong>
+            <span>Longest clean stretch + cleavage-prone residues</span>
+            <p>Sequence-level estimate based on K/R and hydrophobic/aromatic cleavage-prone sites.</p>
+          </div>
+          <div>
+            <strong>N-end rule class</strong>
+            <span>Stable / Intermediate / Destabilizing</span>
+            <p>Classifies the N-terminal residue as a stability proxy.</p>
+          </div>
+          <div>
+            <strong>SPPS difficulty</strong>
+            <span>Favorable / Moderate / Difficult</span>
+            <p>Flags long sequences, hydrophobic stretches, beta-branched clusters, cysteine risk, and difficult motifs.</p>
+          </div>
+          <div>
+            <strong>Hemolysis risk proxy</strong>
+            <span>Low / Medium / High</span>
+            <p>Heuristic based on high charge, amphiphilicity, positive GRAVY, and hydrophobic fraction.</p>
           </div>
         </div>
 
