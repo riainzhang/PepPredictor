@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PepPredictor</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>PepPredictor</span>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#predict">Predict</a>
+        <a href="#results">Results</a>
+        <a href="#thresholds">Thresholds</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="view-panel" id="predict">
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Peptide druggability workbench</p>
+            <h1>Predict peptide properties from sequence</h1>
+            <p>
+              Paste peptide sequences or upload FASTA/TXT files to estimate charge,
+              hydrophobicity, pI, instability, GRAVY, Boman index, sequence complexity,
+              and a solubility proxy.
+            </p>
+          </div>
+          <div class="molecule-panel" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </section>
+
+        <section class="workspace" aria-label="Prediction workspace">
+          <form class="input-panel" id="predictForm">
+            <div class="panel-heading">
+              <div>
+                <p class="label">Input</p>
+                <h2>Peptide sequences</h2>
+              </div>
+              <button class="ghost-button" type="button" id="loadExample">Example</button>
+            </div>
+
+            <label class="sr-only" for="sequenceInput">Peptide sequences</label>
+            <textarea id="sequenceInput" spellcheck="false" placeholder="Paste FASTA or sequences separated by comma, semicolon, space, or new line.&#10;&#10;>pep_1&#10;GLFDIIKKIAESF&#10;RRWWRF&#10;ACDEFGHIKLMNPQRSTVWY"></textarea>
+
+            <div class="file-row">
+              <label class="file-picker" for="fileInput">
+                <span>Upload FASTA/TXT</span>
+                <input id="fileInput" type="file" accept=".fa,.fasta,.txt,.csv,text/plain">
+              </label>
+              <span id="fileName">No file selected</span>
+            </div>
+
+            <div class="controls">
+              <button class="primary-button" type="submit">Run prediction</button>
+              <button class="secondary-button" type="button" id="clearAll">Clear</button>
+            </div>
+
+            <p class="hint">
+              Canonical amino acids only: A C D E F G H I K L M N P Q R S T V W Y.
+              Sequences shorter than 3 aa are skipped.
+            </p>
+          </form>
+
+          <aside class="summary-panel" aria-label="Prediction summary">
+            <div>
+              <p class="label">Summary</p>
+              <h2 id="summaryTitle">Ready</h2>
+            </div>
+            <div class="summary-grid">
+              <div>
+                <strong id="totalCount">0</strong>
+                <span>Evaluated</span>
+              </div>
+              <div>
+                <strong id="passCount">0</strong>
+                <span>PASS</span>
+              </div>
+              <div>
+                <strong id="failCount">0</strong>
+                <span>FAIL</span>
+              </div>
+              <div>
+                <strong id="skipCount">0</strong>
+                <span>Skipped</span>
+              </div>
+            </div>
+            <div class="download-row">
+              <button class="secondary-button" type="button" id="downloadAll" disabled>Download CSV</button>
+              <button class="secondary-button" type="button" id="downloadPass" disabled>PASS only</button>
+            </div>
+            <div class="mini-report" id="miniReport">Results will appear after prediction.</div>
+          </aside>
+        </section>
+      </div>
+
+      <section class="results-section view-panel" id="results">
+        <div class="result-download-panel">
+          <div>
+            <p class="label">Download</p>
+            <h2>Prediction data</h2>
+          </div>
+          <div class="results-actions">
+            <button class="secondary-button" type="button" id="resultsDownloadAll" disabled>Download CSV</button>
+            <button class="secondary-button" type="button" id="resultsDownloadPass" disabled>PASS only</button>
+          </div>
+        </div>
+        <div class="section-heading">
+          <div>
+            <p class="label">Output</p>
+            <h2>Prediction results</h2>
+          </div>
+          <input id="tableFilter" type="search" placeholder="Filter results" aria-label="Filter results">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Sequence</th>
+                <th>Status</th>
+                <th>Length</th>
+                <th>Charge</th>
+                <th>pI</th>
+                <th>Hydrophobicity</th>
+                <th>Instability</th>
+                <th>Solubility</th>
+                <th>Fail reasons</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr class="empty-row">
+                <td colspan="10">No predictions yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="threshold-section view-panel" id="thresholds">
+        <p class="label">Model notes</p>
+        <div class="thresholds">
+          <span>Length 5-50 aa</span>
+          <span>Charge -1 to 4</span>
+          <span>pI 4-10</span>
+          <span>GRAVY -2 to 0.8</span>
+          <span>Instability &lt;40</span>
+          <span>Boman &gt;0.5</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 PepPredictor. Open Platform for Peptide Druggability Prediction</p>
+      <p>Last updated: June 9, 2026</p>
+      <p>GRIP, University of Groningen, Antonius Deusinglaan 1, 9713AV Groningen, The Netherlands. +31(0)618060861</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
