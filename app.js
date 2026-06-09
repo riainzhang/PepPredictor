@@ -21,6 +21,23 @@ const BOMAN_SCALE = {
   S: 0.332, T: 0.314, W: -0.722, Y: -0.267, V: -0.584
 };
 
+const AA_AVG_MASS = {
+  A: 89.0935, R: 174.2017, N: 132.1184, D: 133.1032, C: 121.159,
+  Q: 146.1451, E: 147.1299, G: 75.0669, H: 155.1552, I: 131.1736,
+  L: 131.1736, K: 146.1882, M: 149.2124, F: 165.19, P: 115.131,
+  S: 105.093, T: 119.1197, W: 204.2262, Y: 181.1894, V: 117.1469
+};
+
+const RESIDUE_GROUPS = {
+  acidic: "DE",
+  basic: "KRH",
+  charged: "DEKRH",
+  hydrophobic: "AVILMFWYC",
+  polar: "STNQCY",
+  aromatic: "FWY",
+  sulfur: "CM"
+};
+
 const DIWV = {
   WP: 1, WC: 1, WM: 24.68, WH: 24.68, WN: 13.34, WT: -14.03, WV: -7.49, WL: 13.34, WG: -9.37,
   CW: 24.68, CM: 33.60, CQ: -6.54, CD: 20.26, CT: 33.60, CV: -6.54, CL: 20.26, CP: 20.26,
@@ -175,6 +192,38 @@ function calcShannonEntropy(seq) {
   return round(entropy, 4);
 }
 
+function calcMolecularWeight(seq) {
+  const waterMass = 18.01528;
+  const freeAaMass = seq.split("").reduce((sum, aa) => sum + AA_AVG_MASS[aa], 0);
+  return round(freeAaMass - (seq.length - 1) * waterMass, 3);
+}
+
+function calcResidueFraction(seq, residues) {
+  const residueSet = new Set(residues.split(""));
+  const hits = seq.split("").filter((aa) => residueSet.has(aa)).length;
+  return round(hits / seq.length, 4);
+}
+
+function calcExtinctionCoefficient(seq) {
+  const tyr = count(seq, "Y");
+  const trp = count(seq, "W");
+  const cysteine = count(seq, "C");
+  const reduced = 1490 * tyr + 5500 * trp;
+  const oxidized = reduced + 125 * Math.floor(cysteine / 2);
+  return { reduced, oxidized };
+}
+
+function aggregationRiskProxy(metrics) {
+  const hydrophobicLoad = metrics.hydrophobic_fraction >= 0.45 || metrics.gravy > 0.5;
+  const lowRepulsion = Math.abs(metrics.net_charge) < 1;
+  const aromaticRich = metrics.aromaticity >= 0.25;
+  const unstable = metrics.instability_index > 40;
+  const riskScore = [hydrophobicLoad, lowRepulsion, aromaticRich, unstable].filter(Boolean).length;
+  if (riskScore >= 3) return "High";
+  if (riskScore >= 1) return "Medium";
+  return "Low";
+}
+
 function count(seq, residue) {
   return seq.split("").filter((aa) => aa === residue).length;
 }
@@ -229,11 +278,14 @@ function solubilityProxy(metrics) {
 
 function evaluateSequence(record, index) {
   const sequence = record.sequence.toUpperCase();
+  const extinction = calcExtinctionCoefficient(sequence);
   const metrics = {
     id: record.id || `pep_${index + 1}`,
     sequence,
     length: sequence.length,
+    molecular_weight_da: calcMolecularWeight(sequence),
     net_charge: round(chargeAtPH(sequence, 7.4, true), 3),
+    net_charge_ph7: round(chargeAtPH(sequence, 7.0, true), 3),
     isoelectric_point: calcIsoelectricPoint(sequence),
     hydrophobicity: meanScale(sequence, EISENBERG_SCALE, 4),
     amphiphilicity: calcAmphiphilicity(sequence),
@@ -241,9 +293,21 @@ function evaluateSequence(record, index) {
     aliphatic_index: calcAliphaticIndex(sequence),
     gravy: meanScale(sequence, KD_SCALE, 4),
     boman_index: meanScale(sequence, BOMAN_SCALE, 4),
-    shannon_entropy: calcShannonEntropy(sequence)
+    shannon_entropy: calcShannonEntropy(sequence),
+    aromaticity: calcResidueFraction(sequence, RESIDUE_GROUPS.aromatic),
+    acidic_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.acidic),
+    basic_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.basic),
+    charged_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.charged),
+    hydrophobic_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.hydrophobic),
+    polar_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.polar),
+    sulfur_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.sulfur),
+    proline_fraction: calcResidueFraction(sequence, "P"),
+    cysteine_count: count(sequence, "C"),
+    extinction_coefficient_reduced: extinction.reduced,
+    extinction_coefficient_oxidized: extinction.oxidized
   };
   metrics.solubility_proxy = solubilityProxy(metrics);
+  metrics.aggregation_risk_proxy = aggregationRiskProxy(metrics);
   const failed = Object.entries(THRESHOLDS).flatMap(([key, [min, max, unit]]) => {
     const value = metrics[key];
     if (value >= min && value <= max) return [];
@@ -302,7 +366,7 @@ function render() {
     : "Results will appear after prediction.";
 
   if (!state.filteredRows.length) {
-    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="10">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
+    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="17">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
     return;
   }
 
@@ -312,11 +376,18 @@ function render() {
       <td class="seq-cell">${escapeHtml(row.sequence)}</td>
       <td><span class="status ${row.druggability.toLowerCase()}">${row.druggability}</span></td>
       <td>${row.length}</td>
+      <td>${format(row.molecular_weight_da)}</td>
       <td>${format(row.net_charge)}</td>
       <td>${format(row.isoelectric_point)}</td>
       <td>${format(row.hydrophobicity)}</td>
+      <td>${format(row.gravy)}</td>
       <td>${format(row.instability_index)}</td>
+      <td>${format(row.boman_index)}</td>
+      <td>${formatPercent(row.aromaticity)}</td>
+      <td>${formatPercent(row.hydrophobic_fraction)}</td>
+      <td>${row.extinction_coefficient_reduced}/${row.extinction_coefficient_oxidized}</td>
       <td>${row.solubility_proxy}</td>
+      <td>${row.aggregation_risk_proxy}</td>
       <td>${escapeHtml(row.fail_reasons || "-")}</td>
     </tr>
   `).join("");
@@ -332,9 +403,14 @@ function filterTable() {
 
 function toCsv(rows) {
   const columns = [
-    "id", "sequence", "druggability", "fail_reasons", "length", "net_charge",
-    "isoelectric_point", "hydrophobicity", "amphiphilicity", "instability_index",
-    "aliphatic_index", "gravy", "boman_index", "shannon_entropy", "solubility_proxy"
+    "id", "sequence", "druggability", "fail_reasons", "length", "molecular_weight_da",
+    "net_charge", "net_charge_ph7", "isoelectric_point", "hydrophobicity",
+    "amphiphilicity", "instability_index", "aliphatic_index", "gravy",
+    "boman_index", "shannon_entropy", "aromaticity", "acidic_fraction",
+    "basic_fraction", "charged_fraction", "hydrophobic_fraction", "polar_fraction",
+    "sulfur_fraction", "proline_fraction", "cysteine_count",
+    "extinction_coefficient_reduced", "extinction_coefficient_oxidized",
+    "solubility_proxy", "aggregation_risk_proxy"
   ];
   const lines = [columns.join(",")];
   rows.forEach((row) => {
@@ -362,6 +438,10 @@ function downloadCsv(rows, filename) {
 
 function format(value) {
   return Number.isFinite(value) ? String(round(value, 4)) : "";
+}
+
+function formatPercent(value) {
+  return Number.isFinite(value) ? `${round(value * 100, 1)}%` : "";
 }
 
 function formatThreshold(min, max, suffix) {
