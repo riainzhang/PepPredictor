@@ -74,6 +74,14 @@ const THRESHOLDS = {
   shannon_entropy: [1.5, 999, ""]
 };
 
+const SCORING_WEIGHTS = {
+  physicochemical_balance: 0.25,
+  stability: 0.25,
+  solubility_aggregation: 0.25,
+  synthesizability: 0.15,
+  safety_proxy: 0.10
+};
+
 const state = {
   rows: [],
   skipped: [],
@@ -224,6 +232,239 @@ function aggregationRiskProxy(metrics) {
   return "Low";
 }
 
+function findMotifs(seq, patterns) {
+  const hits = [];
+  patterns.forEach(({ label, regex, priority }) => {
+    const expression = new RegExp(regex, "g");
+    let match = expression.exec(seq);
+    while (match) {
+      hits.push({
+        motif: match[0],
+        label,
+        priority,
+        position: match.index + 1
+      });
+      expression.lastIndex = match.index + 1;
+      match = expression.exec(seq);
+    }
+  });
+  return hits;
+}
+
+function calcDegradationHotspots(seq) {
+  const motifHits = findMotifs(seq, [
+    { label: "Asn deamidation", regex: "N[GSTN]", priority: "High" },
+    { label: "Gln deamidation", regex: "Q[GS]", priority: "Medium" },
+    { label: "Asp isomerization", regex: "D[GSDT]", priority: "High" },
+    { label: "Asp-Pro acid lability", regex: "DP", priority: "Medium" },
+    { label: "Diketopiperazine risk", regex: "^[GP]", priority: "Medium" },
+    { label: "Pyroglutamation risk", regex: "^[QE]", priority: "Medium" },
+    { label: "Adjacent cysteine beta-elimination risk", regex: "CC", priority: "Low" }
+  ]);
+  const oxidationResidues = seq.split("").reduce((sum, aa) => sum + ("MWCH".includes(aa) ? 1 : 0), 0);
+  if (oxidationResidues) {
+    motifHits.push({
+      motif: "M/W/C/H",
+      label: "Oxidation-prone residues",
+      priority: oxidationResidues >= 3 ? "High" : "Medium",
+      position: "-"
+    });
+  }
+  return motifHits;
+}
+
+function calcLongestCleanStretch(seq) {
+  const vulnerableAfter = new Set("KRFWYLM".split(""));
+  let longest = 0;
+  let current = 1;
+  for (let i = 0; i < seq.length - 1; i += 1) {
+    if (vulnerableAfter.has(seq[i]) || seq.slice(i, i + 2) === "XP") {
+      longest = Math.max(longest, current);
+      current = 1;
+    } else {
+      current += 1;
+    }
+  }
+  return Math.max(longest, current);
+}
+
+function calcProteolysisRiskProxy(seq, longestCleanStretch) {
+  const dppivRisk = /^[A-Z][PA]/.test(seq);
+  const cleavageDensity = seq.split("").filter((aa) => "KRFWYLM".includes(aa)).length / seq.length;
+  if (longestCleanStretch < 5 || cleavageDensity > 0.45 || dppivRisk) return "High";
+  if (longestCleanStretch < 10 || cleavageDensity > 0.25) return "Medium";
+  return "Low";
+}
+
+function calcNEndRuleClass(seq) {
+  const stabilizing = new Set("GAVPMST".split(""));
+  const destabilizing = new Set("RKLFWYI".split(""));
+  const first = seq[0];
+  if (stabilizing.has(first)) return "Stable";
+  if (destabilizing.has(first)) return "Destabilizing";
+  return "Intermediate";
+}
+
+function calcSppsDifficulty(seq, metrics) {
+  const flags = [];
+  let score = 0;
+  if (seq.length > 30) {
+    score += seq.length > 50 ? 4 : 2;
+    flags.push(seq.length > 50 ? "very long peptide" : "long peptide");
+  }
+  if (/(?:[IVT]){4,}/.test(seq)) {
+    score += 3;
+    flags.push("consecutive beta-branched residues");
+  }
+  if (/[AVILMFWYC]{6,}/.test(seq)) {
+    score += 3;
+    flags.push("long hydrophobic stretch");
+  }
+  if (metrics.hydrophobic_fraction > 0.55) {
+    score += 2;
+    flags.push("high hydrophobic fraction");
+  }
+  if (metrics.cysteine_count % 2 === 1) {
+    score += 2;
+    flags.push("odd cysteine count");
+  } else if (metrics.cysteine_count >= 4) {
+    score += 2;
+    flags.push("multiple cysteines");
+  }
+  if (calcResidueFraction(seq, "H") > 0.2) {
+    score += 1;
+    flags.push("His-rich sequence");
+  }
+  if (count(seq, "M") >= 2) {
+    score += 1;
+    flags.push("multiple methionines");
+  }
+  if (/DP/.test(seq)) {
+    score += 1;
+    flags.push("Asp-Pro motif");
+  }
+  if (/(?:Q{4,}|G{5,}|(?:GS){4,})/.test(seq)) {
+    score += 1;
+    flags.push("difficult low-complexity motif");
+  }
+  return {
+    score,
+    flags,
+    class: score >= 7 ? "Difficult" : score >= 4 ? "Moderate" : "Favorable"
+  };
+}
+
+function calcHemolysisRiskProxy(metrics) {
+  const riskScore = [
+    metrics.net_charge > 6,
+    metrics.amphiphilicity > 0.5,
+    metrics.gravy > 0.5,
+    metrics.hydrophobic_fraction > 0.5
+  ].filter(Boolean).length;
+  if (riskScore >= 3) return "High";
+  if (riskScore >= 1) return "Medium";
+  return "Low";
+}
+
+function scoreWindow(value, min, max, idealMin, idealMax) {
+  if (value >= idealMin && value <= idealMax) return 100;
+  if (value < min || value > max) return 0;
+  if (value < idealMin) return ((value - min) / (idealMin - min)) * 100;
+  return ((max - value) / (max - idealMax)) * 100;
+}
+
+function scoreMax(value, goodMax, badMax) {
+  if (value <= goodMax) return 100;
+  if (value >= badMax) return 0;
+  return ((badMax - value) / (badMax - goodMax)) * 100;
+}
+
+function scoreMin(value, badMin, goodMin) {
+  if (value >= goodMin) return 100;
+  if (value <= badMin) return 0;
+  return ((value - badMin) / (goodMin - badMin)) * 100;
+}
+
+function categoryScore(value, scores) {
+  return scores[value] ?? 50;
+}
+
+function calcCompositeScoring(metrics) {
+  const physicochemical = average([
+    scoreWindow(metrics.length, 5, 50, 8, 30),
+    scoreWindow(metrics.molecular_weight_da, 500, 5000, 700, 3500),
+    scoreWindow(metrics.net_charge, -1, 6, 0, 4),
+    scoreWindow(metrics.isoelectric_point, 4, 11, 5, 10),
+    scoreWindow(metrics.gravy, -2, 0.8, -1.2, 0.2),
+    scoreMax(metrics.aromaticity, 0.25, 0.4),
+    scoreMin(metrics.shannon_entropy, 1.2, 2.0)
+  ]);
+  const stability = average([
+    scoreMax(metrics.instability_index, 40, 60),
+    categoryScore(metrics.n_end_rule_class, { Stable: 100, Intermediate: 70, Destabilizing: 35 }),
+    scoreMax(metrics.degradation_hotspot_count, 1, 6),
+    categoryScore(metrics.proteolysis_risk_proxy, { Low: 100, Medium: 60, High: 20 })
+  ]);
+  const solubilityAggregation = average([
+    categoryScore(metrics.solubility_proxy, { High: 100, Medium: 65, Low: 25 }),
+    categoryScore(metrics.aggregation_risk_proxy, { Low: 100, Medium: 60, High: 15 }),
+    scoreMax(metrics.hydrophobic_fraction, 0.45, 0.7),
+    scoreWindow(metrics.amphiphilicity, 0.05, 0.65, 0.15, 0.45)
+  ]);
+  const synthesizability = average([
+    scoreMax(metrics.spps_difficulty_score, 3, 8),
+    metrics.cysteine_count % 2 === 1 ? 20 : 100,
+    scoreWindow(metrics.length, 5, 60, 8, 30)
+  ]);
+  const safetyProxy = average([
+    categoryScore(metrics.hemolysis_risk_proxy, { Low: 100, Medium: 60, High: 15 }),
+    scoreMax(Math.max(0, metrics.net_charge - 6), 0, 4),
+    scoreMax(metrics.aromaticity, 0.3, 0.5)
+  ]);
+  const domainScores = {
+    physicochemical_balance_score: round(physicochemical, 1),
+    stability_score: round(stability, 1),
+    solubility_aggregation_score: round(solubilityAggregation, 1),
+    synthesizability_score: round(synthesizability, 1),
+    safety_proxy_score: round(safetyProxy, 1)
+  };
+  const weightedScore = Object.entries(SCORING_WEIGHTS).reduce((sum, [key, weight]) => {
+    const scoreKey = `${key}_score`;
+    return sum + domainScores[scoreKey] * weight;
+  }, 0);
+  return {
+    ...domainScores,
+    developability_score: round(weightedScore, 1),
+    developability_class: classifyScore(weightedScore)
+  };
+}
+
+function calcHardFilters(metrics) {
+  const reasons = [];
+  if (metrics.aggregation_risk_proxy === "High") reasons.push("high aggregation risk proxy");
+  if (metrics.hemolysis_risk_proxy === "High") reasons.push("high hemolysis risk proxy");
+  if (metrics.spps_difficulty_score >= 8) reasons.push("high SPPS difficulty");
+  if (metrics.instability_index > 60 && metrics.longest_clean_stretch_aa < 5) {
+    reasons.push("severe instability and short clean stretch");
+  }
+  if (metrics.cysteine_count % 2 === 1) reasons.push("odd cysteine count");
+  return {
+    hard_filter_pass: reasons.length === 0,
+    hard_filter_reasons: reasons.join("; ")
+  };
+}
+
+function classifyScore(score) {
+  if (score >= 80) return "Excellent";
+  if (score >= 65) return "Good";
+  if (score >= 50) return "Moderate";
+  return "Low";
+}
+
+function average(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function count(seq, residue) {
   return seq.split("").filter((aa) => aa === residue).length;
 }
@@ -308,14 +549,32 @@ function evaluateSequence(record, index) {
   };
   metrics.solubility_proxy = solubilityProxy(metrics);
   metrics.aggregation_risk_proxy = aggregationRiskProxy(metrics);
+  metrics.degradation_hotspots = calcDegradationHotspots(sequence);
+  metrics.degradation_hotspot_count = metrics.degradation_hotspots.length;
+  metrics.degradation_hotspot_summary = metrics.degradation_hotspots
+    .map((hit) => `${hit.label}:${hit.motif}@${hit.position}`)
+    .join("; ");
+  metrics.longest_clean_stretch_aa = calcLongestCleanStretch(sequence);
+  metrics.proteolysis_risk_proxy = calcProteolysisRiskProxy(sequence, metrics.longest_clean_stretch_aa);
+  metrics.n_end_rule_class = calcNEndRuleClass(sequence);
+  const spps = calcSppsDifficulty(sequence, metrics);
+  metrics.spps_difficulty_score = spps.score;
+  metrics.spps_difficulty_class = spps.class;
+  metrics.spps_flags = spps.flags.join("; ");
+  metrics.hemolysis_risk_proxy = calcHemolysisRiskProxy(metrics);
+  Object.assign(metrics, calcCompositeScoring(metrics));
+  Object.assign(metrics, calcHardFilters(metrics));
   const failed = Object.entries(THRESHOLDS).flatMap(([key, [min, max, unit]]) => {
     const value = metrics[key];
     if (value >= min && value <= max) return [];
     const suffix = unit ? ` ${unit}` : "";
     return [`${key}=${format(value)} (expected ${formatThreshold(min, max, suffix)})`];
   });
-  metrics.druggability = failed.length ? "FAIL" : "PASS";
-  metrics.fail_reasons = failed.join("; ");
+  const hardFilterFailures = metrics.hard_filter_reasons
+    ? [`hard_filter=${metrics.hard_filter_reasons}`]
+    : [];
+  metrics.druggability = failed.length || !metrics.hard_filter_pass ? "FAIL" : "PASS";
+  metrics.fail_reasons = [...hardFilterFailures, ...failed].join("; ");
   return metrics;
 }
 
@@ -336,7 +595,7 @@ function runPrediction() {
 
   state.rows.sort((a, b) => {
     if (a.druggability !== b.druggability) return a.druggability === "PASS" ? -1 : 1;
-    return a.instability_index - b.instability_index;
+    return b.developability_score - a.developability_score;
   });
   state.filteredRows = [...state.rows];
   els.tableFilter.value = "";
@@ -362,11 +621,11 @@ function render() {
     ? ` Skipped ${state.skipped.length}: ${state.skipped.slice(0, 3).map((x) => `${x.id} ${x.reason}`).join("; ")}.`
     : "";
   els.miniReport.textContent = state.rows.length
-    ? `PASS rate ${passRate}. Results are sorted with PASS entries first, then by lower instability index.${skippedText}`
+    ? `PASS rate ${passRate}. Results are sorted with PASS entries first, then by higher developability score.${skippedText}`
     : "Results will appear after prediction.";
 
   if (!state.filteredRows.length) {
-    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="17">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
+    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="22">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
     return;
   }
 
@@ -375,6 +634,9 @@ function render() {
       <td>${escapeHtml(row.id)}</td>
       <td class="seq-cell">${escapeHtml(row.sequence)}</td>
       <td><span class="status ${row.druggability.toLowerCase()}">${row.druggability}</span></td>
+      <td>${format(row.developability_score)}</td>
+      <td>${row.developability_class}</td>
+      <td>${row.hard_filter_pass ? "PASS" : "FAIL"}</td>
       <td>${row.length}</td>
       <td>${format(row.molecular_weight_da)}</td>
       <td>${format(row.net_charge)}</td>
@@ -388,6 +650,8 @@ function render() {
       <td>${row.extinction_coefficient_reduced}/${row.extinction_coefficient_oxidized}</td>
       <td>${row.solubility_proxy}</td>
       <td>${row.aggregation_risk_proxy}</td>
+      <td>${row.proteolysis_risk_proxy}</td>
+      <td>${row.spps_difficulty_class}</td>
       <td>${escapeHtml(row.fail_reasons || "-")}</td>
     </tr>
   `).join("");
@@ -403,14 +667,20 @@ function filterTable() {
 
 function toCsv(rows) {
   const columns = [
-    "id", "sequence", "druggability", "fail_reasons", "length", "molecular_weight_da",
+    "id", "sequence", "druggability", "developability_score", "developability_class",
+    "hard_filter_pass", "hard_filter_reasons", "fail_reasons",
+    "physicochemical_balance_score", "stability_score", "solubility_aggregation_score",
+    "synthesizability_score", "safety_proxy_score", "length", "molecular_weight_da",
     "net_charge", "net_charge_ph7", "isoelectric_point", "hydrophobicity",
     "amphiphilicity", "instability_index", "aliphatic_index", "gravy",
     "boman_index", "shannon_entropy", "aromaticity", "acidic_fraction",
     "basic_fraction", "charged_fraction", "hydrophobic_fraction", "polar_fraction",
     "sulfur_fraction", "proline_fraction", "cysteine_count",
     "extinction_coefficient_reduced", "extinction_coefficient_oxidized",
-    "solubility_proxy", "aggregation_risk_proxy"
+    "solubility_proxy", "aggregation_risk_proxy", "hemolysis_risk_proxy",
+    "proteolysis_risk_proxy", "longest_clean_stretch_aa", "n_end_rule_class",
+    "degradation_hotspot_count", "degradation_hotspot_summary",
+    "spps_difficulty_score", "spps_difficulty_class", "spps_flags"
   ];
   const lines = [columns.join(",")];
   rows.forEach((row) => {
