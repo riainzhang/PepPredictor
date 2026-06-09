@@ -365,7 +365,7 @@ button:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1720px;
+  min-width: 2180px;
   font-size: 14px;
 }
 
@@ -439,6 +439,41 @@ tbody tr:hover {
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.scoring-model {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid #c9e4ec;
+  border-radius: 6px;
+  background: #edf6f8;
+}
+
+.scoring-model h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.scoring-model p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.score-weights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.score-weights span {
+  padding: 7px 9px;
+  border: 1px solid #b7dce8;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--blue-dark);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .results-header {
