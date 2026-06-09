@@ -138,17 +138,24 @@
                 <th>Sequence</th>
                 <th>Status</th>
                 <th>Length</th>
+                <th>MW (Da)</th>
                 <th>Charge</th>
                 <th>pI</th>
                 <th>Hydrophobicity</th>
+                <th>GRAVY</th>
                 <th>Instability</th>
+                <th>Boman</th>
+                <th>Aromaticity</th>
+                <th>Hydrophobic fraction</th>
+                <th>Ext. coeff.</th>
                 <th>Solubility</th>
+                <th>Aggregation</th>
                 <th>Fail reasons</th>
               </tr>
             </thead>
             <tbody id="resultsBody">
               <tr class="empty-row">
-                <td colspan="10">No predictions yet.</td>
+                <td colspan="17">No predictions yet.</td>
               </tr>
             </tbody>
           </table>
@@ -219,6 +226,31 @@
             <span>&ge;1.5</span>
             <p>Low-complexity filter based on amino-acid composition.</p>
           </div>
+          <div>
+            <strong>Molecular weight</strong>
+            <span>Average mass, Da</span>
+            <p>Calculated from amino-acid average masses with peptide-bond water loss.</p>
+          </div>
+          <div>
+            <strong>Residue class fractions</strong>
+            <span>Acidic, basic, charged, polar, hydrophobic, sulfur, proline</span>
+            <p>Composition descriptors for sequence polarity, charge distribution, and synthesis flags.</p>
+          </div>
+          <div>
+            <strong>Aromaticity</strong>
+            <span>F + W + Y fraction</span>
+            <p>Fraction of aromatic residues, useful for hydrophobic and optical behavior.</p>
+          </div>
+          <div>
+            <strong>Extinction coefficient</strong>
+            <span>Reduced / oxidized at 280 nm</span>
+            <p>Estimated from Trp, Tyr, and disulfide-forming Cys pairs.</p>
+          </div>
+          <div>
+            <strong>Aggregation risk proxy</strong>
+            <span>Low / Medium / High</span>
+            <p>Sequence-only proxy combining hydrophobic load, low charge repulsion, aromaticity, and instability.</p>
+          </div>
         </div>
 
         <div class="references">
@@ -230,6 +262,7 @@
             <li><a href="https://www.nature.com/articles/nrd3591" target="_blank" rel="noopener">Fjell et al., Nature Reviews Drug Discovery, 2012</a></li>
             <li><a href="https://www.nature.com/articles/s41573-019-0058-8" target="_blank" rel="noopener">Mookherjee et al., Nature Reviews Drug Discovery, 2020</a></li>
             <li><a href="https://www.nature.com/articles/s41579-025-01200-y" target="_blank" rel="noopener">Wang et al., Nature Reviews Microbiology, 2025</a></li>
+            <li><a href="https://web.expasy.org/protparam/protparam-doc.html" target="_blank" rel="noopener">ExPASy ProtParam documentation</a></li>
           </ol>
         </div>
       </section>
