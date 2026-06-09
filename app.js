@@ -381,7 +381,8 @@ function escapeHtml(value) {
 }
 
 function showView(viewName) {
-  const view = ["predict", "results", "thresholds"].includes(viewName) ? viewName : "predict";
+  const normalizedView = viewName === "thresholds" ? "method" : viewName;
+  const view = ["predict", "results", "method"].includes(normalizedView) ? normalizedView : "predict";
   document.querySelectorAll(".view-panel").forEach((panel) => {
     panel.hidden = panel.id !== view;
   });
