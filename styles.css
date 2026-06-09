@@ -418,6 +418,21 @@ tbody tr:hover {
   padding: 18px 20px;
 }
 
+.threshold-intro {
+  max-width: 900px;
+  margin-bottom: 18px;
+}
+
+.threshold-intro h2 {
+  margin-bottom: 8px;
+}
+
+.threshold-intro p:not(.label) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .results-header {
   display: flex;
   align-items: center;
@@ -475,6 +490,62 @@ tbody tr:hover {
   gap: 10px;
 }
 
+.threshold-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.threshold-grid div {
+  padding: 14px;
+  border: 1px solid #dce5eb;
+  border-radius: 6px;
+  background: var(--soft);
+}
+
+.threshold-grid strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--blue-dark);
+}
+
+.threshold-grid span {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.threshold-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.references {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.references h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.references ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.references a {
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+
 .thresholds span {
   padding: 8px 10px;
   background: #edf6f8;
@@ -521,7 +592,8 @@ tbody tr:hover {
 
   .hero,
   .workspace,
-  .summary-strip {
+  .summary-strip,
+  .threshold-grid {
     grid-template-columns: 1fr;
   }
 
