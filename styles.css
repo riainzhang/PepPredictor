@@ -638,6 +638,12 @@ tbody tr:hover {
   border: 0;
 }
 
+@media (max-width: 1180px) {
+  .hero-copy p:not(.eyebrow) {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 860px) {
   .topbar,
   .panel-heading,
