@@ -78,50 +78,39 @@
               Sequences shorter than 3 aa are skipped.
             </p>
           </form>
-
-          <aside class="summary-panel" aria-label="Prediction summary">
-            <div>
-              <p class="label">Summary</p>
-              <h2 id="summaryTitle">Ready</h2>
-            </div>
-            <div class="summary-grid">
-              <div>
-                <strong id="totalCount">0</strong>
-                <span>Evaluated</span>
-              </div>
-              <div>
-                <strong id="passCount">0</strong>
-                <span>PASS</span>
-              </div>
-              <div>
-                <strong id="failCount">0</strong>
-                <span>FAIL</span>
-              </div>
-              <div>
-                <strong id="skipCount">0</strong>
-                <span>Skipped</span>
-              </div>
-            </div>
-            <div class="download-row">
-              <button class="secondary-button" type="button" id="downloadAll" disabled>Download CSV</button>
-              <button class="secondary-button" type="button" id="downloadPass" disabled>PASS only</button>
-            </div>
-            <div class="mini-report" id="miniReport">Results will appear after prediction.</div>
-          </aside>
         </section>
       </div>
 
       <section class="results-section view-panel" id="results">
-        <div class="result-download-panel">
+        <aside class="summary-panel result-summary-panel" aria-label="Prediction summary">
           <div>
-            <p class="label">Download</p>
-            <h2>Prediction data</h2>
+            <p class="label">Summary</p>
+            <h2 id="summaryTitle">Ready</h2>
           </div>
-          <div class="results-actions">
-            <button class="secondary-button" type="button" id="resultsDownloadAll" disabled>Download CSV</button>
-            <button class="secondary-button" type="button" id="resultsDownloadPass" disabled>PASS only</button>
+          <div class="summary-grid">
+            <div>
+              <strong id="totalCount">0</strong>
+              <span>Evaluated</span>
+            </div>
+            <div>
+              <strong id="passCount">0</strong>
+              <span>PASS</span>
+            </div>
+            <div>
+              <strong id="failCount">0</strong>
+              <span>FAIL</span>
+            </div>
+            <div>
+              <strong id="skipCount">0</strong>
+              <span>Skipped</span>
+            </div>
           </div>
-        </div>
+          <div class="download-row">
+            <button class="secondary-button" type="button" id="downloadAll" disabled>Download CSV</button>
+            <button class="secondary-button" type="button" id="downloadPass" disabled>PASS only</button>
+          </div>
+          <div class="mini-report" id="miniReport">Results will appear after prediction.</div>
+        </aside>
         <div class="section-heading">
           <div>
             <p class="label">Output</p>
