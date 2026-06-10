@@ -104,8 +104,6 @@ const els = {
   miniReport: document.querySelector("#miniReport"),
   downloadAll: document.querySelector("#downloadAll"),
   downloadPass: document.querySelector("#downloadPass"),
-  resultsDownloadAll: document.querySelector("#resultsDownloadAll"),
-  resultsDownloadPass: document.querySelector("#resultsDownloadPass"),
   tableFilter: document.querySelector("#tableFilter")
 };
 
@@ -613,8 +611,6 @@ function render() {
   els.summaryTitle.textContent = state.rows.length ? "Prediction complete" : "Ready";
   els.downloadAll.disabled = state.rows.length === 0;
   els.downloadPass.disabled = pass === 0;
-  els.resultsDownloadAll.disabled = state.rows.length === 0;
-  els.resultsDownloadPass.disabled = pass === 0;
 
   const passRate = state.rows.length ? `${Math.round((pass / state.rows.length) * 100)}%` : "N/A";
   const skippedText = state.skipped.length
@@ -786,14 +782,6 @@ els.downloadAll.addEventListener("click", () => {
 });
 
 els.downloadPass.addEventListener("click", () => {
-  downloadCsv(state.rows.filter((row) => row.druggability === "PASS"), "peppredictor_pass_only.csv");
-});
-
-els.resultsDownloadAll.addEventListener("click", () => {
-  downloadCsv(state.rows, "peppredictor_results.csv");
-});
-
-els.resultsDownloadPass.addEventListener("click", () => {
   downloadCsv(state.rows.filter((row) => row.druggability === "PASS"), "peppredictor_pass_only.csv");
 });
 
