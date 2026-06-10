@@ -130,6 +130,11 @@ main {
   line-height: 1.55;
 }
 
+.hero-copy p:not(.eyebrow) {
+  max-width: 980px;
+  white-space: nowrap;
+}
+
 .eyebrow,
 .label {
   margin: 0 0 6px;
@@ -668,6 +673,10 @@ tbody tr:hover {
 
   .hero h1 {
     font-size: 32px;
+  }
+
+  .hero-copy p:not(.eyebrow) {
+    white-space: normal;
   }
 
   .molecule-panel {
