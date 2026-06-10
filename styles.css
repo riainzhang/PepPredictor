@@ -180,9 +180,7 @@ main {
 .molecule-panel span:nth-child(5) { left: 196px; top: 135px; background: #d9f7ff; }
 
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
-  gap: 18px;
+  display: block;
   margin-top: 18px;
 }
 
@@ -304,6 +302,10 @@ button:disabled {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin: 16px 0 12px;
+}
+
+.result-summary-panel {
+  margin-bottom: 18px;
 }
 
 .summary-grid div {
