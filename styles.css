@@ -265,6 +265,25 @@ button:focus-visible {
   display: none;
 }
 
+.chain-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chain-select select {
+  min-height: 40px;
+  border: 1px solid #c5d0d8;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--blue-dark);
+  background: #fff;
+  font-weight: 700;
+}
+
 #fileName,
 .hint {
   color: var(--muted);
