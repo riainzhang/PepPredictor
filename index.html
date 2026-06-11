@@ -66,6 +66,15 @@
                 <input id="fileInput" type="file" accept=".fa,.fasta,.txt,.csv,text/plain">
               </label>
               <span id="fileName">No file selected</span>
+              <label class="chain-select">
+                <span>Peptide chain</span>
+                <select id="peptideChainMode">
+                  <option value="last" selected>Last</option>
+                  <option value="first">First</option>
+                  <option value="longest">Longest</option>
+                  <option value="shortest">Shortest</option>
+                </select>
+              </label>
             </div>
 
             <div class="controls">
@@ -75,7 +84,7 @@
 
             <p class="hint">
               Canonical amino acids only: A C D E F G H I K L M N P Q R S T V W Y.
-              Sequences shorter than 3 aa are skipped.
+              Sequences shorter than 3 aa are skipped. FASTA headers from ProteinMPNN are parsed when present.
             </p>
           </form>
         </section>
@@ -124,6 +133,8 @@
               <tr>
                 <th>ID</th>
                 <th>Sequence</th>
+                <th>Copies</th>
+                <th>MPNN score</th>
                 <th>Status</th>
                 <th>Score</th>
                 <th>Class</th>
@@ -148,7 +159,7 @@
             </thead>
             <tbody id="resultsBody">
               <tr class="empty-row">
-                <td colspan="22">No predictions yet.</td>
+                <td colspan="24">No predictions yet.</td>
               </tr>
             </tbody>
           </table>
@@ -228,7 +239,7 @@
           <div>
             <strong>Boman index</strong>
             <span>&ge;0.5</span>
-            <p>Heuristic minimum for protein-binding potential; values above 2.48 are high.</p>
+            <p>Published binding-positive convention, calculated as the negative mean Boman scale value.</p>
           </div>
           <div>
             <strong>Shannon entropy</strong>
