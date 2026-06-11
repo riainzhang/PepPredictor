@@ -82,6 +82,8 @@ const SCORING_WEIGHTS = {
   safety_proxy: 0.10
 };
 
+const MODLAMP_API_URL = (window.PEPPREDICTOR_API_URL || "").replace(/\/$/, "");
+
 const state = {
   rows: [],
   skipped: [],
@@ -589,9 +591,39 @@ function solubilityProxy(metrics) {
   return "Low";
 }
 
-function evaluateSequence(record, index) {
+async function fetchModlampDescriptors(records) {
+  if (!MODLAMP_API_URL || !records.length) return new Map();
+  const uniqueSequences = [...new Set(records.map((record) => record.sequence))];
+  try {
+    const response = await fetch(`${MODLAMP_API_URL}/api/modlamp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sequences: uniqueSequences })
+    });
+    if (!response.ok) throw new Error(`modlamp API returned ${response.status}`);
+    const payload = await response.json();
+    return new Map((payload.results || []).map((row) => [row.sequence, row]));
+  } catch (error) {
+    console.warn("PepPredictor modlamp API unavailable; using browser fallback.", error);
+    return new Map();
+  }
+}
+
+function evaluateSequence(record, index, descriptorOverrides = {}) {
   const sequence = record.sequence.toUpperCase();
   const extinction = calcExtinctionCoefficient(sequence);
+  const charge74 = Number.isFinite(descriptorOverrides.net_charge)
+    ? descriptorOverrides.net_charge
+    : round(chargeAtPH(sequence, 7.4, true), 3);
+  const charge70 = Number.isFinite(descriptorOverrides.net_charge_ph7)
+    ? descriptorOverrides.net_charge_ph7
+    : round(chargeAtPH(sequence, 7.0, true), 3);
+  const pI = Number.isFinite(descriptorOverrides.isoelectric_point)
+    ? descriptorOverrides.isoelectric_point
+    : calcIsoelectricPoint(sequence);
+  const boman = Number.isFinite(descriptorOverrides.boman_index)
+    ? descriptorOverrides.boman_index
+    : calcBomanIndex(sequence);
   const metrics = {
     id: record.id || `pep_${index + 1}`,
     sequence,
@@ -603,15 +635,16 @@ function evaluateSequence(record, index) {
     multichain: record.multichain ? "Yes" : "No",
     length: sequence.length,
     molecular_weight_da: calcMolecularWeight(sequence),
-    net_charge: round(chargeAtPH(sequence, 7.4, true), 3),
-    net_charge_ph7: round(chargeAtPH(sequence, 7.0, true), 3),
-    isoelectric_point: calcIsoelectricPoint(sequence),
+    net_charge: charge74,
+    net_charge_ph7: charge70,
+    isoelectric_point: pI,
+    descriptor_engine: descriptorOverrides.engine || "browser-fallback",
     hydrophobicity: meanScale(sequence, EISENBERG_SCALE, 4),
     amphiphilicity: calcAmphiphilicity(sequence),
     instability_index: calcInstabilityIndex(sequence),
     aliphatic_index: calcAliphaticIndex(sequence),
     gravy: meanScale(sequence, KD_SCALE, 4),
-    boman_index: calcBomanIndex(sequence),
+    boman_index: boman,
     shannon_entropy: calcShannonEntropy(sequence),
     aromaticity: calcResidueFraction(sequence, RESIDUE_GROUPS.aromatic),
     acidic_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.acidic),
@@ -656,11 +689,12 @@ function evaluateSequence(record, index) {
   return metrics;
 }
 
-function runPrediction() {
+async function runPrediction() {
   const parsed = parseSequences(els.input.value);
   state.skipped = [];
   state.rows = [];
 
+  const validRecords = [];
   parsed.forEach((record, index) => {
     const sequence = record.sequence.toUpperCase();
     const reason = validateSequence(sequence);
@@ -668,7 +702,13 @@ function runPrediction() {
       state.skipped.push({ id: record.id || `pep_${index + 1}`, sequence, reason });
       return;
     }
-    state.rows.push(evaluateSequence({ ...record, sequence }, index));
+    validRecords.push({ ...record, sequence, originalIndex: index });
+  });
+
+  const modlampDescriptors = await fetchModlampDescriptors(validRecords);
+  validRecords.forEach((record) => {
+    const overrides = modlampDescriptors.get(record.sequence) || {};
+    state.rows.push(evaluateSequence(record, record.originalIndex, overrides));
   });
 
   state.rows.sort((a, b) => {
@@ -746,6 +786,7 @@ function filterTable() {
 function toCsv(rows) {
   const columns = [
     "id", "sequence", "sample", "mpnn_score", "seq_recovery", "n_copies", "multichain", "source_header",
+    "descriptor_engine",
     "druggability", "developability_score", "developability_class",
     "hard_filter_pass", "hard_filter_reasons", "fail_reasons",
     "physicochemical_balance_score", "stability_score", "solubility_aggregation_score",
@@ -826,9 +867,9 @@ function showView(viewName) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-els.form.addEventListener("submit", (event) => {
+els.form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  runPrediction();
+  await runPrediction();
 });
 
 els.fileInput.addEventListener("change", async () => {
@@ -838,7 +879,7 @@ els.fileInput.addEventListener("change", async () => {
   els.input.value = await file.text();
 });
 
-els.loadExample.addEventListener("click", () => {
+els.loadExample.addEventListener("click", async () => {
   els.input.value = `>pep_1
 DHPKKGGPTPT
 >pep_2
@@ -847,7 +888,7 @@ GLFDIIKKIAESF
 ACDEFGHIKLMNPQRSTVWY
 >low_complexity
 AAAAAAA`;
-  runPrediction();
+  await runPrediction();
 });
 
 els.clearAll.addEventListener("click", () => {
