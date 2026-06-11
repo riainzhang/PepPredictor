@@ -93,6 +93,7 @@ const els = {
   input: document.querySelector("#sequenceInput"),
   fileInput: document.querySelector("#fileInput"),
   fileName: document.querySelector("#fileName"),
+  peptideChainMode: document.querySelector("#peptideChainMode"),
   loadExample: document.querySelector("#loadExample"),
   clearAll: document.querySelector("#clearAll"),
   resultsBody: document.querySelector("#resultsBody"),
@@ -111,38 +112,107 @@ function round(value, digits = 3) {
   return Number.parseFloat(value.toFixed(digits));
 }
 
+function parseMpnnHeader(header) {
+  const info = {};
+  header.split(",").forEach((part) => {
+    const item = part.trim();
+    if (!item) return;
+    if (item.includes("=")) {
+      const [rawKey, ...rest] = item.split("=");
+      info[rawKey.trim()] = rest.join("=").trim();
+    } else if (!info.name) {
+      info.name = item;
+    }
+  });
+  return info;
+}
+
+function selectPeptideChain(sequence, mode = "last") {
+  if (!sequence.includes("/")) {
+    return {
+      sequence: sequence.replace(/[^A-Za-z]/g, "").toUpperCase(),
+      multichain: false
+    };
+  }
+  const chains = sequence
+    .split("/")
+    .map((chain) => chain.replace(/[^A-Za-z]/g, "").toUpperCase())
+    .filter(Boolean);
+  if (!chains.length) return { sequence: "", multichain: true };
+  let selected = chains[chains.length - 1];
+  if (mode === "first") selected = chains[0];
+  if (mode === "longest") selected = [...chains].sort((a, b) => b.length - a.length)[0];
+  if (mode === "shortest") selected = [...chains].sort((a, b) => a.length - b.length)[0];
+  return { sequence: selected, multichain: true };
+}
+
+function makeRecord(header, sequence, index, chainMode) {
+  const info = parseMpnnHeader(header || "");
+  const selected = selectPeptideChain(sequence, chainMode);
+  const sample = info.sample ?? "";
+  const baseId = sample !== "" ? `sample_${sample}` : (info.name || header || `pep_${index + 1}`);
+  return {
+    id: String(baseId).trim().split(/\s+/)[0] || `pep_${index + 1}`,
+    sequence: selected.sequence,
+    sample,
+    mpnn_score: info.score ?? "",
+    seq_recovery: info.seq_recovery ?? "",
+    source_header: header || "",
+    multichain: selected.multichain,
+    n_copies: 1
+  };
+}
+
+function deduplicateRecords(records) {
+  const counts = records.reduce((map, record) => {
+    map.set(record.sequence, (map.get(record.sequence) || 0) + 1);
+    return map;
+  }, new Map());
+  const seen = new Set();
+  return records.filter((record) => {
+    if (seen.has(record.sequence)) return false;
+    seen.add(record.sequence);
+    record.n_copies = counts.get(record.sequence) || 1;
+    return true;
+  });
+}
+
 function parseSequences(text) {
   const clean = text.replace(/\r/g, "").trim();
   if (!clean) return [];
   const lines = clean.split("\n").map((line) => line.trim()).filter(Boolean);
   const hasFasta = lines.some((line) => line.startsWith(">"));
+  const chainMode = els.peptideChainMode.value;
 
   if (hasFasta) {
     const records = [];
-    let currentId = "";
+    let currentHeader = "";
     let currentSeq = [];
     lines.forEach((line) => {
       if (line.startsWith(">")) {
         if (currentSeq.length) {
-          records.push({ id: currentId || `pep_${records.length + 1}`, sequence: currentSeq.join("") });
+          records.push(makeRecord(currentHeader, currentSeq.join(""), records.length, chainMode));
         }
-        currentId = line.slice(1).trim().split(/\s+/)[0] || `pep_${records.length + 1}`;
+        currentHeader = line.slice(1).trim();
         currentSeq = [];
       } else {
-        currentSeq.push(line.replace(/[^A-Za-z]/g, ""));
+        currentSeq.push(line);
       }
     });
     if (currentSeq.length) {
-      records.push({ id: currentId || `pep_${records.length + 1}`, sequence: currentSeq.join("") });
+      records.push(makeRecord(currentHeader, currentSeq.join(""), records.length, chainMode));
     }
-    return records;
+    const hasMpnnSamples = records.some((record) => record.sample !== "");
+    const peptideRecords = hasMpnnSamples ? records.filter((record) => record.sample !== "") : records;
+    return deduplicateRecords(peptideRecords);
   }
 
-  return clean
+  const records = clean
     .split(/[\s,;|]+/)
     .map((token) => token.replace(/[^A-Za-z]/g, "").toUpperCase())
     .filter(Boolean)
-    .map((sequence, index) => ({ id: `pep_${index + 1}`, sequence }));
+    .map((sequence, index) => ({ id: `pep_${index + 1}`, sequence, sample: "", mpnn_score: "", seq_recovery: "", source_header: "", multichain: false, n_copies: 1 }));
+  return deduplicateRecords(records);
 }
 
 function validateSequence(seq) {
@@ -155,6 +225,10 @@ function validateSequence(seq) {
 
 function meanScale(seq, scale, digits = 4) {
   return round(seq.split("").reduce((sum, aa) => sum + scale[aa], 0) / seq.length, digits);
+}
+
+function calcBomanIndex(seq) {
+  return round(-seq.split("").reduce((sum, aa) => sum + BOMAN_SCALE[aa], 0) / seq.length, 4);
 }
 
 function calcAliphaticIndex(seq) {
@@ -521,6 +595,12 @@ function evaluateSequence(record, index) {
   const metrics = {
     id: record.id || `pep_${index + 1}`,
     sequence,
+    sample: record.sample || "",
+    mpnn_score: record.mpnn_score || "",
+    seq_recovery: record.seq_recovery || "",
+    n_copies: record.n_copies || 1,
+    source_header: record.source_header || "",
+    multichain: record.multichain ? "Yes" : "No",
     length: sequence.length,
     molecular_weight_da: calcMolecularWeight(sequence),
     net_charge: round(chargeAtPH(sequence, 7.4, true), 3),
@@ -531,7 +611,7 @@ function evaluateSequence(record, index) {
     instability_index: calcInstabilityIndex(sequence),
     aliphatic_index: calcAliphaticIndex(sequence),
     gravy: meanScale(sequence, KD_SCALE, 4),
-    boman_index: meanScale(sequence, BOMAN_SCALE, 4),
+    boman_index: calcBomanIndex(sequence),
     shannon_entropy: calcShannonEntropy(sequence),
     aromaticity: calcResidueFraction(sequence, RESIDUE_GROUPS.aromatic),
     acidic_fraction: calcResidueFraction(sequence, RESIDUE_GROUPS.acidic),
@@ -621,7 +701,7 @@ function render() {
     : "Results will appear after prediction.";
 
   if (!state.filteredRows.length) {
-    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="22">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
+    els.resultsBody.innerHTML = `<tr class="empty-row"><td colspan="24">${state.rows.length ? "No rows match the filter." : "No predictions yet."}</td></tr>`;
     return;
   }
 
@@ -629,6 +709,8 @@ function render() {
     <tr>
       <td>${escapeHtml(row.id)}</td>
       <td class="seq-cell">${escapeHtml(row.sequence)}</td>
+      <td>${row.n_copies || 1}</td>
+      <td>${escapeHtml(row.mpnn_score || "-")}</td>
       <td><span class="status ${row.druggability.toLowerCase()}">${row.druggability}</span></td>
       <td>${format(row.developability_score)}</td>
       <td>${row.developability_class}</td>
@@ -663,7 +745,8 @@ function filterTable() {
 
 function toCsv(rows) {
   const columns = [
-    "id", "sequence", "druggability", "developability_score", "developability_class",
+    "id", "sequence", "sample", "mpnn_score", "seq_recovery", "n_copies", "multichain", "source_header",
+    "druggability", "developability_score", "developability_class",
     "hard_filter_pass", "hard_filter_reasons", "fail_reasons",
     "physicochemical_balance_score", "stability_score", "solubility_aggregation_score",
     "synthesizability_score", "safety_proxy_score", "length", "molecular_weight_da",
