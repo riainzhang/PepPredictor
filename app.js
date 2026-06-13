@@ -109,6 +109,7 @@ const els = {
   miniReport: document.querySelector("#miniReport"),
   downloadAll: document.querySelector("#downloadAll"),
   downloadPass: document.querySelector("#downloadPass"),
+  clearResults: document.querySelector("#clearResults"),
   tableFilter: document.querySelector("#tableFilter")
 };
 
@@ -906,15 +907,19 @@ AAAAAAA`;
   await runPrediction();
 });
 
-els.clearAll.addEventListener("click", () => {
+function clearWorkspace() {
   els.input.value = "";
   els.fileInput.value = "";
   els.fileName.textContent = "No file selected";
   state.rows = [];
   state.skipped = [];
   state.filteredRows = [];
+  els.tableFilter.value = "";
   render();
-});
+}
+
+els.clearAll.addEventListener("click", clearWorkspace);
+els.clearResults.addEventListener("click", clearWorkspace);
 
 els.downloadAll.addEventListener("click", () => {
   downloadCsv(state.rows, "peppredictor_results.csv");
