@@ -1,4 +1,4 @@
-const ORIGIN_API = "http://35.212.233.205";
+const ORIGIN_API = "http://35-212-233-205.sslip.io";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
