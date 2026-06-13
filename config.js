@@ -1,1 +1,1 @@
-window.PEPPREDICTOR_API_URL = "";
+window.PEPPREDICTOR_API_URL = "https://peppredictor.pages.dev";
