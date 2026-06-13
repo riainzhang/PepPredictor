@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://riainzhang.github.io/PepPredictor/sitemap.xml
+Sitemap: https://peppredictor.pages.dev/sitemap.xml
