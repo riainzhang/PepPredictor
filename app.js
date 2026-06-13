@@ -83,6 +83,8 @@ const SCORING_WEIGHTS = {
 };
 
 const MODLAMP_API_URL = (window.PEPPREDICTOR_API_URL || "").replace(/\/$/, "");
+const MAX_SEQUENCE_COUNT = 5000;
+const MODLAMP_BATCH_SIZE = 200;
 
 const state = {
   rows: [],
@@ -594,15 +596,20 @@ function solubilityProxy(metrics) {
 async function fetchModlampDescriptors(records) {
   if (!MODLAMP_API_URL || !records.length) return new Map();
   const uniqueSequences = [...new Set(records.map((record) => record.sequence))];
+  const descriptorMap = new Map();
   try {
-    const response = await fetch(`${MODLAMP_API_URL}/api/modlamp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sequences: uniqueSequences })
-    });
-    if (!response.ok) throw new Error(`modlamp API returned ${response.status}`);
-    const payload = await response.json();
-    return new Map((payload.results || []).map((row) => [row.sequence, row]));
+    for (let i = 0; i < uniqueSequences.length; i += MODLAMP_BATCH_SIZE) {
+      const batch = uniqueSequences.slice(i, i + MODLAMP_BATCH_SIZE);
+      const response = await fetch(`${MODLAMP_API_URL}/api/modlamp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sequences: batch })
+      });
+      if (!response.ok) throw new Error(`modlamp API returned ${response.status}`);
+      const payload = await response.json();
+      (payload.results || []).forEach((row) => descriptorMap.set(row.sequence, row));
+    }
+    return descriptorMap;
   } catch (error) {
     console.warn("PepPredictor modlamp API unavailable; using browser fallback.", error);
     return new Map();
@@ -693,6 +700,14 @@ async function runPrediction() {
   const parsed = parseSequences(els.input.value);
   state.skipped = [];
   state.rows = [];
+
+  if (parsed.length > MAX_SEQUENCE_COUNT) {
+    state.filteredRows = [];
+    render();
+    els.miniReport.textContent = `Too many sequences: ${parsed.length} submitted. PepPredictor accepts up to ${MAX_SEQUENCE_COUNT} sequences per run; please split the input into smaller batches.`;
+    showView("predict");
+    return;
+  }
 
   const validRecords = [];
   parsed.forEach((record, index) => {
