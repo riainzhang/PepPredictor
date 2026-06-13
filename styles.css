@@ -365,6 +365,12 @@ button:disabled {
   padding: 20px;
 }
 
+#results.results-section {
+  min-height: calc(100vh - 210px);
+  display: flex;
+  flex-direction: column;
+}
+
 .result-download-panel {
   display: flex;
   align-items: center;
@@ -392,7 +398,9 @@ button:disabled {
 }
 
 .table-wrap {
-  height: clamp(460px, 62vh, 760px);
+  flex: 1 1 auto;
+  min-height: 430px;
+  max-height: 760px;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -646,7 +654,7 @@ tbody tr:hover {
 .site-footer {
   max-width: 1500px;
   margin: 0 auto;
-  padding: 40px 24px 30px;
+  padding: 20px 24px 26px;
   color: #40546a;
   text-align: center;
   font-size: 14px;
