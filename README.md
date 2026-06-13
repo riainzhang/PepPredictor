@@ -1,12 +1,20 @@
 # PepPredictor
 
-PepPredictor is a static web app for peptide property prediction. It accepts pasted
-peptide sequences, FASTA text, or uploaded FASTA/TXT files, then calculates basic
-druggability-related descriptors in the browser.
+**Online server:** https://peppredictor.pages.dev/
 
-## Preview
+PepPredictor is a web platform for sequence-derived peptide property profiling,
+developability scoring, and early-stage risk flagging. It accepts pasted peptide
+sequences, FASTA text, or uploaded FASTA/TXT files, then reports
+druggability-related descriptors with downloadable results.
 
-Open `index.html` directly in a browser.
+## Public Access
+
+- Main site: https://peppredictor.pages.dev/
+- GitHub Pages mirror: https://riainzhang.github.io/PepPredictor/
+
+The Cloudflare Pages site is the recommended public entry point. The GitHub
+Pages mirror uses the same Cloudflare HTTPS API endpoint for the Python/modlamp
+descriptor service.
 
 ## Inputs
 
@@ -44,20 +52,18 @@ Open `index.html` directly in a browser.
 
 ## Calculation note
 
-This first version runs fully in the browser for easy static deployment. The
-manual descriptor scales and thresholds are adapted from the earlier Python
-script; charge and pI are JavaScript estimates using standard pKa equations.
-If exact `modlamp` parity is required later, add a small Python API backend.
+PepPredictor uses a hybrid deployment. The web interface is hosted on
+Cloudflare Pages and GitHub Pages. Charge, pI, and Boman index are preferentially
+calculated by a Python FastAPI backend using `modlamp`, currently deployed on a
+Google Cloud VM and exposed through a Cloudflare HTTPS proxy. If the backend is
+temporarily unavailable, the browser falls back to local JavaScript estimates so
+the interface remains usable.
 
-## Deploy
+## Deployment
 
-GitHub Pages:
+- Frontend: Cloudflare Pages and GitHub Pages
+- Backend: Google Cloud VM, FastAPI, `modlamp`, Nginx, systemd
+- Public API proxy: `https://peppredictor.pages.dev/api/modlamp`
 
-1. Push this folder to a GitHub repository.
-2. In repository settings, enable Pages from the main branch root.
-
-Cloudflare Pages:
-
-1. Create a Pages project from the GitHub repository.
-2. Use no build command.
-3. Set the output directory to `/`.
+Cloudflare Pages is connected to this GitHub repository and automatically
+redeploys after commits to `main`.
