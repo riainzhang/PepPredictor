@@ -33,7 +33,7 @@ app.add_middleware(
 
 
 class ModlampRequest(BaseModel):
-    sequences: List[str] = Field(..., min_length=1, max_length=MAX_SEQUENCE_COUNT)
+    sequences: List[str] = Field(..., min_length=1)
 
 
 def normalize_sequence(sequence: str) -> str:
@@ -85,6 +85,11 @@ def health() -> dict:
 
 @app.post("/api/modlamp")
 def modlamp_descriptors(payload: ModlampRequest) -> dict:
+    if len(payload.sequences) > MAX_SEQUENCE_COUNT:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many sequences. PepPredictor accepts up to {MAX_SEQUENCE_COUNT} sequences per run.",
+        )
     unique_sequences = list(dict.fromkeys(normalize_sequence(seq) for seq in payload.sequences))
     if len(unique_sequences) > MAX_SEQUENCE_COUNT:
         raise HTTPException(
