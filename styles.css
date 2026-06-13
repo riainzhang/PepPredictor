@@ -368,7 +368,6 @@ button:disabled {
 }
 
 #results.results-section {
-  min-height: calc(100vh - 210px);
   display: flex;
   flex-direction: column;
 }
@@ -400,9 +399,8 @@ button:disabled {
 }
 
 .table-wrap {
-  flex: 1 1 auto;
-  min-height: 430px;
-  max-height: 760px;
+  height: clamp(300px, calc(100vh - 560px), 620px);
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
