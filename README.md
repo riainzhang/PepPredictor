@@ -19,6 +19,7 @@ The Cloudflare Pages site is the recommended public entry point.
 - FASTA records
 - One or more peptide sequences separated by comma, semicolon, pipe, space, tab, or new line
 - Canonical amino acids only: `ACDEFGHIKLMNPQRSTVWY`
+- Up to 5000 sequences per run
 
 ## Outputs
 
