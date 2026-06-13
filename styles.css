@@ -383,8 +383,17 @@ button:disabled {
   padding: 0 12px;
 }
 
+.results-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .table-wrap {
-  overflow-x: auto;
+  height: clamp(460px, 62vh, 760px);
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
 }
@@ -405,6 +414,9 @@ td {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #f0f5f7;
   color: #34495a;
   font-size: 12px;
@@ -634,7 +646,7 @@ tbody tr:hover {
 .site-footer {
   max-width: 1500px;
   margin: 0 auto;
-  padding: 20px 24px 26px;
+  padding: 40px 24px 30px;
   color: #40546a;
   text-align: center;
   font-size: 14px;
