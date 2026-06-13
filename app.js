@@ -919,7 +919,7 @@ function clearWorkspace() {
 }
 
 els.clearAll.addEventListener("click", clearWorkspace);
-els.clearResults.addEventListener("click", clearWorkspace);
+els.clearResults?.addEventListener("click", clearWorkspace);
 
 els.downloadAll.addEventListener("click", () => {
   downloadCsv(state.rows, "peppredictor_results.csv");
